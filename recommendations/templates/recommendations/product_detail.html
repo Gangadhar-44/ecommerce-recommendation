@@ -1,0 +1,360 @@
+{% extends 'recommendations/base.html' %}
+{% block title %}{{ product.name }} - ShopSmart{% endblock %}
+
+{% block extra_css %}
+<style>
+    .product-gallery {
+        background: white;
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: var(--card-shadow);
+    }
+    .product-gallery img {
+        width: 100%;
+        height: 400px;
+        object-fit: cover;
+    }
+    .product-details {
+        background: white;
+        border-radius: 1rem;
+        padding: 2rem;
+        box-shadow: var(--card-shadow);
+    }
+    .rating-input {
+        display: flex;
+        gap: 0.5rem;
+        font-size: 1.5rem;
+    }
+    .rating-input i {
+        cursor: pointer;
+        color: #e2e8f0;
+        transition: color 0.2s;
+    }
+    .rating-input i:hover,
+    .rating-input i.active {
+        color: #fbbf24;
+    }
+    .review-card {
+        background: #f8fafc;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    .quantity-selector {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .quantity-selector button {
+        width: 36px;
+        height: 36px;
+        border-radius: 0.5rem;
+        border: 1px solid #e2e8f0;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .quantity-selector input {
+        width: 50px;
+        text-align: center;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="py-5">
+    <div class="container">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'home' %}" class="text-decoration-none">Home</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'product_list' %}" class="text-decoration-none">Products</a></li>
+                <li class="breadcrumb-item active">{{ product.name }}</li>
+            </ol>
+        </nav>
+
+        <div class="row g-4">
+            <!-- Product Image -->
+            <div class="col-lg-6">
+                <div class="product-gallery">
+                    <img src="{{ product.image_url }}" alt="{{ product.name }}">
+                </div>
+            </div>
+
+            <!-- Product Info -->
+            <div class="col-lg-6">
+                <div class="product-details">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge bg-primary" style="background: var(--gradient-1) !important;">{{ product.category.name }}</span>
+                        <span class="badge bg-secondary">{{ product.brand }}</span>
+                    </div>
+
+                    <h1 class="fw-bold mb-2">{{ product.name }}</h1>
+
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="product-rating">
+                            {% for i in "12345"|make_list %}
+                                {% if forloop.counter <= product.average_rating %}
+                                    <i class="bi bi-star-fill"></i>
+                                {% else %}
+                                    <i class="bi bi-star"></i>
+                                {% endif %}
+                            {% endfor %}
+                            <span class="ms-2">{{ product.average_rating|floatformat:1 }} ({{ product.total_reviews }} reviews)</span>
+                        </div>
+                    </div>
+
+                    <h2 class="text-primary fw-bold mb-3">${{ product.price }}</h2>
+
+                    <p class="text-muted mb-4">{{ product.description }}</p>
+
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-2">Tags:</h6>
+                        {% for tag in product.get_tag_list %}
+                        <span class="badge bg-light text-dark me-1">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-2">Stock:</h6>
+                        <span class="{% if product.stock_quantity > 10 %}text-success{% else %}text-warning{% endif %}">
+                            <i class="bi bi-check-circle-fill me-1"></i>{{ product.stock_quantity }} units available
+                        </span>
+                    </div>
+
+                    {% if user.is_authenticated %}
+                    <div class="d-flex gap-3 mb-4">
+                        <div class="quantity-selector">
+                            <button onclick="decrementQty()"><i class="bi bi-dash"></i></button>
+                            <input type="number" id="quantity" value="1" min="1" max="{{ product.stock_quantity }}">
+                            <button onclick="incrementQty()"><i class="bi bi-plus"></i></button>
+                        </div>
+                        <button class="btn btn-primary btn-lg flex-grow-1" style="background: var(--gradient-1); border: none;" onclick="addToCartWithQty({{ product.id }}, '{{ product.name|escapejs }}')">
+                            <i class="bi bi-cart-plus me-2"></i>Add to Cart
+                        </button>
+                        <button class="btn btn-success btn-lg" onclick="buyNow({{ product.id }}, '{{ product.name|escapejs }}')">
+                            <i class="bi bi-lightning-charge me-2"></i>Buy Now
+                        </button>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>Please <a href="{% url 'login' %}" class="alert-link">login</a> to add items to cart or make purchases.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Reviews Section -->
+        <div class="row mt-5">
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card-body p-4">
+                        <h3 class="fw-bold mb-4">
+                            <i class="bi bi-chat-square-text me-2"></i>Customer Reviews
+                        </h3>
+
+                        {% if user.is_authenticated %}
+                        <div class="mb-4 p-3 rounded-3" style="background: #f8fafc;">
+                            <h6 class="fw-bold mb-2">Write a Review</h6>
+                            <div class="rating-input mb-2" id="ratingInput">
+                                {% for i in "12345"|make_list %}
+                                <i class="bi bi-star" data-rating="{{ forloop.counter }}" onclick="setRating({{ forloop.counter }})"></i>
+                                {% endfor %}
+                            </div>
+                            <textarea id="reviewText" class="form-control mb-2" rows="3" placeholder="Share your experience..."></textarea>
+                            <button class="btn btn-primary" style="background: var(--gradient-1); border: none;" onclick="submitReview({{ product.id }})">
+                                <i class="bi bi-send me-2"></i>Submit Review
+                            </button>
+                        </div>
+                        {% endif %}
+
+                        {% for rating in ratings %}
+                        <div class="review-card">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <strong>{{ rating.user.username }}</strong>
+                                        <div class="product-rating">
+                                            {% for i in "12345"|make_list %}
+                                                {% if forloop.counter <= rating.rating %}
+                                                    <i class="bi bi-star-fill"></i>
+                                                {% else %}
+                                                    <i class="bi bi-star"></i>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    <p class="mb-0">{{ rating.review }}</p>
+                                </div>
+                                <small class="text-muted">{{ rating.created_at|date:"M d, Y" }}</small>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-muted text-center py-3">No reviews yet. Be the first to review!</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Similar Products -->
+        {% if similar_products %}
+        <div class="mt-5">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">
+                        <i class="bi bi-diagram-3 me-2 text-primary"></i>Similar Products
+                    </h2>
+                    <p class="section-subtitle">Products similar to {{ product.name }}</p>
+                </div>
+            </div>
+            <div class="row g-4">
+                {% for rec in similar_products %}
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="product-card">
+                        <div class="product-image-wrapper">
+                            <span class="rec-score">
+                                {{ rec.score }}<br>
+                                <span class="rec-algorithm">similarity</span>
+                            </span>
+                            <img src="{{ rec.product.image_url }}" alt="{{ rec.product.name }}" class="product-image">
+                        </div>
+                        <div class="product-info">
+                            <div class="product-category">{{ rec.product.category.name }}</div>
+                            <h5 class="product-name">{{ rec.product.name }}</h5>
+                            <div class="product-brand">{{ rec.product.brand }}</div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="product-price">${{ rec.product.price }}</span>
+                                <div class="product-rating">
+                                    {% for i in "12345"|make_list %}
+                                        {% if forloop.counter <= rec.product.average_rating %}
+                                            <i class="bi bi-star-fill"></i>
+                                        {% else %}
+                                            <i class="bi bi-star"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <button class="btn-add-cart" onclick="addToCart({{ rec.product.id }}, '{{ rec.product.name|escapejs }}')">
+                                <i class="bi bi-cart-plus me-2"></i>Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentRating = 0;
+
+    function incrementQty() {
+        const input = document.getElementById('quantity');
+        input.value = parseInt(input.value) + 1;
+    }
+
+    function decrementQty() {
+        const input = document.getElementById('quantity');
+        if (parseInt(input.value) > 1) {
+            input.value = parseInt(input.value) - 1;
+        }
+    }
+
+    function addToCartWithQty(productId, productName) {
+        const qty = document.getElementById('quantity').value;
+        fetch('/add-to-cart/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({ product_id: productId, quantity: parseInt(qty) })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Added to Cart', `${qty}x ${productName} added to cart.`);
+            } else {
+                showToast('Error', data.error || 'Failed to add to cart', 'error');
+            }
+        });
+    }
+
+    function buyNow(productId, productName) {
+        const qty = document.getElementById('quantity').value;
+        fetch('/purchase/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({ product_id: productId, quantity: parseInt(qty) })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Purchase Successful!', data.message);
+            } else {
+                showToast('Error', data.error || 'Purchase failed', 'error');
+            }
+        });
+    }
+
+    function setRating(rating) {
+        currentRating = rating;
+        const stars = document.querySelectorAll('#ratingInput i');
+        stars.forEach((star, index) => {
+            if (index < rating) {
+                star.classList.add('active');
+                star.classList.remove('bi-star');
+                star.classList.add('bi-star-fill');
+            } else {
+                star.classList.remove('active');
+                star.classList.remove('bi-star-fill');
+                star.classList.add('bi-star');
+            }
+        });
+    }
+
+    function submitReview(productId) {
+        if (currentRating === 0) {
+            showToast('Error', 'Please select a rating', 'error');
+            return;
+        }
+
+        const review = document.getElementById('reviewText').value;
+
+        fetch('/rate/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                product_id: productId,
+                rating: currentRating,
+                review: review
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Review Submitted', 'Thank you for your feedback!');
+                location.reload();
+            } else {
+                showToast('Error', data.error || 'Failed to submit review', 'error');
+            }
+        });
+    }
+</script>
+{% endblock %}

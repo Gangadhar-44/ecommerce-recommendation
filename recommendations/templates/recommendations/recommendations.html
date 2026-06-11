@@ -1,0 +1,292 @@
+{% extends 'recommendations/base.html' %}
+{% block title %}Your Recommendations - ShopSmart{% endblock %}
+
+{% block extra_css %}
+<style>
+    .algorithm-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: var(--card-shadow);
+        margin-bottom: 2rem;
+    }
+    .algorithm-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f1f5f9;
+    }
+    .algorithm-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+    }
+    .algorithm-title {
+        font-weight: 700;
+        font-size: 1.25rem;
+        margin: 0;
+    }
+    .algorithm-desc {
+        color: #94a3b8;
+        font-size: 0.9rem;
+        margin: 0;
+    }
+    .because-card {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .because-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    .because-product-img {
+        width: 60px;
+        height: 60px;
+        border-radius: 0.75rem;
+        object-fit: cover;
+    }
+    .score-bar {
+        height: 6px;
+        background: #e2e8f0;
+        border-radius: 3px;
+        overflow: hidden;
+        margin-top: 0.5rem;
+    }
+    .score-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.5s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="py-4" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);">
+    <div class="container">
+        <h1 class="text-white fw-bold mb-2">
+            <i class="bi bi-stars me-2"></i>Your Personalized Recommendations
+        </h1>
+        <p class="text-white-50 mb-0">Powered by machine learning algorithms analyzing your behavior</p>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        <!-- Hybrid Recommendations -->
+        <div class="algorithm-card">
+            <div class="algorithm-header">
+                <div class="algorithm-icon" style="background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);">
+                    <i class="bi bi-lightning-charge"></i>
+                </div>
+                <div>
+                    <h3 class="algorithm-title">Hybrid Recommendations</h3>
+                    <p class="algorithm-desc">Best of both worlds - combining collaborative and content-based filtering</p>
+                </div>
+            </div>
+            <div class="row g-4">
+                {% for rec in hybrid_recommendations %}
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="product-card">
+                        <div class="product-image-wrapper">
+                            <span class="rec-score">
+                                {{ rec.score|floatformat:2 }}<br>
+                                <span class="rec-algorithm">hybrid</span>
+                            </span>
+                            <img src="{{ rec.product.image_url }}" alt="{{ rec.product.name }}" class="product-image">
+                        </div>
+                        <div class="product-info">
+                            <div class="product-category">{{ rec.product.category.name }}</div>
+                            <h5 class="product-name">{{ rec.product.name }}</h5>
+                            <div class="product-brand">{{ rec.product.brand }}</div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="product-price">${{ rec.product.price }}</span>
+                                <div class="product-rating">
+                                    {% for i in "12345"|make_list %}
+                                        {% if forloop.counter <= rec.product.average_rating %}
+                                            <i class="bi bi-star-fill"></i>
+                                        {% else %}
+                                            <i class="bi bi-star"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="score-bar">
+                                <div class="score-fill" style="width: {{ rec.score|multiply:100 }}%; background: linear-gradient(90deg, #ec4899, #f43f5e);"></div>
+                            </div>
+                            <button class="btn-add-cart" onclick="addToCart({{ rec.product.id }}, '{{ rec.product.name|escapejs }}')">
+                                <i class="bi bi-cart-plus me-2"></i>Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Collaborative Filtering -->
+        <div class="algorithm-card">
+            <div class="algorithm-header">
+                <div class="algorithm-icon" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+                <div>
+                    <h3 class="algorithm-title">Collaborative Filtering</h3>
+                    <p class="algorithm-desc">Products liked by users with similar taste profiles</p>
+                </div>
+            </div>
+            <div class="row g-4">
+                {% for rec in collaborative_recommendations %}
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="product-card">
+                        <div class="product-image-wrapper">
+                            <span class="rec-score">
+                                {{ rec.score|floatformat:2 }}<br>
+                                <span class="rec-algorithm">collaborative</span>
+                            </span>
+                            <img src="{{ rec.product.image_url }}" alt="{{ rec.product.name }}" class="product-image">
+                        </div>
+                        <div class="product-info">
+                            <div class="product-category">{{ rec.product.category.name }}</div>
+                            <h5 class="product-name">{{ rec.product.name }}</h5>
+                            <div class="product-brand">{{ rec.product.brand }}</div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="product-price">${{ rec.product.price }}</span>
+                                <div class="product-rating">
+                                    {% for i in "12345"|make_list %}
+                                        {% if forloop.counter <= rec.product.average_rating %}
+                                            <i class="bi bi-star-fill"></i>
+                                        {% else %}
+                                            <i class="bi bi-star"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="score-bar">
+                                <div class="score-fill" style="width: {{ rec.score|multiply:100 }}%; background: linear-gradient(90deg, #6366f1, #8b5cf6);"></div>
+                            </div>
+                            <button class="btn-add-cart" onclick="addToCart({{ rec.product.id }}, '{{ rec.product.name|escapejs }}')">
+                                <i class="bi bi-cart-plus me-2"></i>Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-center py-4">
+                    <p class="text-muted">Rate more products to get collaborative filtering recommendations!</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Content-Based -->
+        <div class="algorithm-card">
+            <div class="algorithm-header">
+                <div class="algorithm-icon" style="background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);">
+                    <i class="bi bi-fingerprint"></i>
+                </div>
+                <div>
+                    <h3 class="algorithm-title">Content-Based Filtering</h3>
+                    <p class="algorithm-desc">Products matching your interests based on features and categories</p>
+                </div>
+            </div>
+            <div class="row g-4">
+                {% for rec in content_based_recommendations %}
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="product-card">
+                        <div class="product-image-wrapper">
+                            <span class="rec-score">
+                                {{ rec.score|floatformat:4 }}<br>
+                                <span class="rec-algorithm">content</span>
+                            </span>
+                            <img src="{{ rec.product.image_url }}" alt="{{ rec.product.name }}" class="product-image">
+                        </div>
+                        <div class="product-info">
+                            <div class="product-category">{{ rec.product.category.name }}</div>
+                            <h5 class="product-name">{{ rec.product.name }}</h5>
+                            <div class="product-brand">{{ rec.product.brand }}</div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="product-price">${{ rec.product.price }}</span>
+                                <div class="product-rating">
+                                    {% for i in "12345"|make_list %}
+                                        {% if forloop.counter <= rec.product.average_rating %}
+                                            <i class="bi bi-star-fill"></i>
+                                        {% else %}
+                                            <i class="bi bi-star"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="score-bar">
+                                <div class="score-fill" style="width: {{ rec.score|multiply:100 }}%; background: linear-gradient(90deg, #06b6d4, #3b82f6);"></div>
+                            </div>
+                            <button class="btn-add-cart" onclick="addToCart({{ rec.product.id }}, '{{ rec.product.name|escapejs }}')">
+                                <i class="bi bi-cart-plus me-2"></i>Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-center py-4">
+                    <p class="text-muted">Browse and rate products to get content-based recommendations!</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Because You Bought -->
+        {% if because_you_bought %}
+        <div class="mt-4">
+            <h3 class="fw-bold mb-4">
+                <i class="bi bi-bag-check me-2 text-success"></i>Because You Bought
+            </h3>
+            {% for item in because_you_bought %}
+            <div class="because-card">
+                <div class="because-header">
+                    <img src="{{ item.purchase.product.image_url }}" alt="{{ item.purchase.product.name }}" class="because-product-img">
+                    <div>
+                        <h6 class="fw-bold mb-1">{{ item.purchase.product.name }}</h6>
+                        <p class="text-muted mb-0">Purchased on {{ item.purchase.purchase_date|date:"M d, Y" }}</p>
+                    </div>
+                </div>
+                <div class="row g-3">
+                    {% for rec in item.recommendations %}
+                    <div class="col-md-4">
+                        <div class="product-card">
+                            <div class="product-image-wrapper">
+                                <span class="rec-score">
+                                    {{ rec.score|floatformat:3 }}<br>
+                                    <span class="rec-algorithm">similar</span>
+                                </span>
+                                <img src="{{ rec.product.image_url }}" alt="{{ rec.product.name }}" class="product-image" style="height: 160px;">
+                            </div>
+                            <div class="product-info" style="padding: 1rem;">
+                                <h6 class="product-name" style="font-size: 0.9rem;">{{ rec.product.name }}</h6>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="product-price" style="font-size: 1rem;">${{ rec.product.price }}</span>
+                                    <button class="btn btn-sm btn-primary" style="background: var(--gradient-1); border: none;" onclick="addToCart({{ rec.product.id }}, '{{ rec.product.name|escapejs }}')">
+                                        <i class="bi bi-cart-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

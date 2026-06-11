@@ -1,0 +1,232 @@
+{% extends 'recommendations/base.html' %}
+{% block title %}Analytics Dashboard - ShopSmart{% endblock %}
+
+{% block extra_css %}
+<style>
+    .analytics-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: var(--card-shadow);
+    }
+    .analytics-number {
+        font-size: 2.5rem;
+        font-weight: 800;
+        background: var(--gradient-1);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .chart-container {
+        height: 300px;
+        position: relative;
+    }
+    .behavior-bar {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 0.75rem;
+    }
+    .behavior-label {
+        width: 100px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    .behavior-progress {
+        flex-grow: 1;
+        height: 24px;
+        background: #f1f5f9;
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+    .behavior-fill {
+        height: 100%;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding-right: 0.5rem;
+        color: white;
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+    .activity-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        margin-bottom: 0.5rem;
+        background: #f8fafc;
+    }
+    .activity-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="py-4" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+    <div class="container">
+        <h1 class="text-white fw-bold mb-2">
+            <i class="bi bi-graph-up-arrow me-2"></i>Analytics Dashboard
+        </h1>
+        <p class="text-white-50 mb-0">Real-time insights into recommendation engine performance</p>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        <!-- Key Metrics -->
+        <div class="row g-4 mb-4">
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="analytics-card text-center">
+                    <div class="analytics-number">{{ total_products }}</div>
+                    <div class="text-muted">Products</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="analytics-card text-center">
+                    <div class="analytics-number">{{ total_users }}</div>
+                    <div class="text-muted">Users</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="analytics-card text-center">
+                    <div class="analytics-number">{{ total_ratings }}</div>
+                    <div class="text-muted">Ratings</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="analytics-card text-center">
+                    <div class="analytics-number">{{ total_purchases }}</div>
+                    <div class="text-muted">Purchases</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="analytics-card text-center">
+                    <div class="analytics-number">{{ total_behaviors }}</div>
+                    <div class="text-muted">Interactions</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="analytics-card text-center">
+                    <div class="analytics-number">{% if total_users > 0 %}{{ total_behaviors|div:total_users|floatformat:1 }}{% else %}0{% endif %}</div>
+                    <div class="text-muted">Avg/User</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Behavior Distribution -->
+            <div class="col-lg-6 mb-4">
+                <div class="analytics-card">
+                    <h4 class="fw-bold mb-3">
+                        <i class="bi bi-bar-chart me-2 text-primary"></i>Behavior Distribution
+                    </h4>
+                    {% for behavior in behavior_distribution %}
+                    <div class="behavior-bar">
+                        <div class="behavior-label">{{ behavior.behavior_type|title }}</div>
+                        <div class="behavior-progress">
+                            <div class="behavior-fill" style="width: {% if total_behaviors > 0 %}{{ behavior.count|div:total_behaviors|multiply:100 }}{% else %}0{% endif %}%; background: var(--gradient-1);">
+                                {{ behavior.count }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="col-lg-6 mb-4">
+                <div class="analytics-card">
+                    <h4 class="fw-bold mb-3">
+                        <i class="bi bi-clock-history me-2 text-primary"></i>Recent Activity
+                    </h4>
+                    <div style="max-height: 300px; overflow-y: auto;">
+                        {% for behavior in recent_behaviors %}
+                        <div class="activity-item">
+                            <div class="activity-icon" style="background: var(--gradient-1);">
+                                {% if behavior.behavior_type == 'view' %}
+                                    <i class="bi bi-eye"></i>
+                                {% elif behavior.behavior_type == 'click' %}
+                                    <i class="bi bi-hand-index"></i>
+                                {% elif behavior.behavior_type == 'cart_add' %}
+                                    <i class="bi bi-cart-plus"></i>
+                                {% elif behavior.behavior_type == 'purchase' %}
+                                    <i class="bi bi-bag-check"></i>
+                                {% elif behavior.behavior_type == 'search' %}
+                                    <i class="bi bi-search"></i>
+                                {% else %}
+                                    <i class="bi bi-activity"></i>
+                                {% endif %}
+                            </div>
+                            <div class="flex-grow-1">
+                                <strong>{{ behavior.user.username|default:"Anonymous" }}</strong>
+                                <span class="text-muted">{{ behavior.behavior_type|title }}</span>
+                                {% if behavior.product %}
+                                    <span class="text-primary">{{ behavior.product.name }}</span>
+                                {% endif %}
+                            </div>
+                            <small class="text-muted">{{ behavior.timestamp|timesince }} ago</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Products -->
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="analytics-card">
+                    <h4 class="fw-bold mb-3">
+                        <i class="bi bi-star-fill me-2 text-warning"></i>Top Rated Products
+                    </h4>
+                    {% for product in top_rated %}
+                    <div class="history-item">
+                        <img src="{{ product.image_url }}" alt="{{ product.name }}" class="history-img">
+                        <div class="flex-grow-1">
+                            <h6 class="fw-bold mb-1">{{ product.name }}</h6>
+                            <div class="product-rating">
+                                {% for i in "12345"|make_list %}
+                                    {% if forloop.counter <= product.avg_rating %}
+                                        <i class="bi bi-star-fill"></i>
+                                    {% else %}
+                                        <i class="bi bi-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                                <span class="ms-2 text-muted">{{ product.avg_rating|floatformat:1 }} ({{ product.rating_count }} reviews)</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="col-lg-6 mb-4">
+                <div class="analytics-card">
+                    <h4 class="fw-bold mb-3">
+                        <i class="bi bi-bag-check me-2 text-success"></i>Most Purchased
+                    </h4>
+                    {% for product in most_purchased %}
+                    <div class="history-item">
+                        <img src="{{ product.image_url }}" alt="{{ product.name }}" class="history-img">
+                        <div class="flex-grow-1">
+                            <h6 class="fw-bold mb-1">{{ product.name }}</h6>
+                            <p class="text-muted mb-0">{{ product.purchase_count }} purchases | ${{ product.price }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

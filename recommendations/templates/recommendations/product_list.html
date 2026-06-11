@@ -1,0 +1,138 @@
+{% extends 'recommendations/base.html' %}
+{% block title %}Products - ShopSmart{% endblock %}
+
+{% block content %}
+<section class="py-4" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);">
+    <div class="container">
+        <h1 class="text-white fw-bold mb-2">All Products</h1>
+        <p class="text-white-50 mb-0">Browse our curated collection of premium products</p>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        <div class="row">
+            <!-- Sidebar Filters -->
+            <div class="col-lg-3 mb-4">
+                <div class="card border-0 shadow-sm rounded-4 sticky-top" style="top: 100px;">
+                    <div class="card-body">
+                        <h5 class="fw-bold mb-3"><i class="bi bi-funnel me-2"></i>Filters</h5>
+
+                        <!-- Search -->
+                        <form action="{% url 'product_list' %}" method="get" class="mb-4">
+                            <div class="input-group">
+                                <input type="text" name="q" class="form-control" placeholder="Search..." value="{{ search_query }}">
+                                <button class="btn btn-primary" type="submit" style="background: var(--gradient-1); border: none;">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                            {% if selected_category %}<input type="hidden" name="category" value="{{ selected_category }}">{% endif %}
+                            {% if sort_by %}<input type="hidden" name="sort" value="{{ sort_by }}">{% endif %}
+                        </form>
+
+                        <!-- Categories -->
+                        <div class="mb-4">
+                            <h6 class="fw-bold mb-2">Categories</h6>
+                            <div class="list-group list-group-flush">
+                                <a href="{% url 'product_list' %}" class="list-group-item list-group-item-action {% if not selected_category %}active{% endif %} border-0 px-0">
+                                    All Categories
+                                </a>
+                                {% for cat in categories %}
+                                <a href="{% url 'product_list' %}?category={{ cat.id }}" class="list-group-item list-group-item-action {% if selected_category == cat.id|stringformat:'s' %}active{% endif %} border-0 px-0">
+                                    {{ cat.name }}
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Sort -->
+                        <div>
+                            <h6 class="fw-bold mb-2">Sort By</h6>
+                            <select class="form-select" onchange="window.location.href=this.value">
+                                <option value="{% url 'product_list' %}?{% if selected_category %}category={{ selected_category }}&{% endif %}{% if search_query %}q={{ search_query }}&{% endif %}sort=name" {% if sort_by == 'name' %}selected{% endif %}>Name</option>
+                                <option value="{% url 'product_list' %}?{% if selected_category %}category={{ selected_category }}&{% endif %}{% if search_query %}q={{ search_query }}&{% endif %}sort=price_low" {% if sort_by == 'price_low' %}selected{% endif %}>Price: Low to High</option>
+                                <option value="{% url 'product_list' %}?{% if selected_category %}category={{ selected_category }}&{% endif %}{% if search_query %}q={{ search_query }}&{% endif %}sort=price_high" {% if sort_by == 'price_high' %}selected{% endif %}>Price: High to Low</option>
+                                <option value="{% url 'product_list' %}?{% if selected_category %}category={{ selected_category }}&{% endif %}{% if search_query %}q={{ search_query }}&{% endif %}sort=rating" {% if sort_by == 'rating' %}selected{% endif %}>Highest Rated</option>
+                                <option value="{% url 'product_list' %}?{% if selected_category %}category={{ selected_category }}&{% endif %}{% if search_query %}q={{ search_query }}&{% endif %}sort=popular" {% if sort_by == 'popular' %}selected{% endif %}>Most Popular</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Grid -->
+            <div class="col-lg-9">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <p class="text-muted mb-0">Showing {{ products.start_index }} - {{ products.end_index }} of {{ products.paginator.count }} products</p>
+                </div>
+
+                <div class="row g-4">
+                    {% for product in products %}
+                    <div class="col-6 col-md-4">
+                        <div class="product-card">
+                            <a href="{% url 'product_detail' product.id %}" class="text-decoration-none">
+                                <div class="product-image-wrapper">
+                                    <img src="{{ product.image_url }}" alt="{{ product.name }}" class="product-image">
+                                </div>
+                            </a>
+                            <div class="product-info">
+                                <div class="product-category">{{ product.category.name }}</div>
+                                <h5 class="product-name">{{ product.name }}</h5>
+                                <div class="product-brand">{{ product.brand }}</div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="product-price">${{ product.price }}</span>
+                                    <div class="product-rating">
+                                        {% for i in "12345"|make_list %}
+                                            {% if forloop.counter <= product.average_rating %}
+                                                <i class="bi bi-star-fill"></i>
+                                            {% else %}
+                                                <i class="bi bi-star"></i>
+                                            {% endif %}
+                                        {% endfor %}
+                                        <span>({{ product.total_reviews }})</span>
+                                    </div>
+                                </div>
+                                <button class="btn-add-cart" onclick="event.preventDefault(); addToCart({{ product.id }}, '{{ product.name|escapejs }}')">
+                                    <i class="bi bi-cart-plus me-2"></i>Add to Cart
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12 text-center py-5">
+                        <i class="bi bi-inbox" style="font-size: 4rem; color: #cbd5e1;"></i>
+                        <h4 class="mt-3 text-muted">No products found</h4>
+                        <p class="text-muted">Try adjusting your filters or search query</p>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Pagination -->
+                {% if products.has_other_pages %}
+                <nav class="mt-5">
+                    <ul class="pagination justify-content-center">
+                        {% if products.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ products.previous_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">Previous</a>
+                        </li>
+                        {% endif %}
+
+                        {% for num in products.paginator.page_range %}
+                        <li class="page-item {% if products.number == num %}active{% endif %}">
+                            <a class="page-link" href="?page={{ num }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">{{ num }}</a>
+                        </li>
+                        {% endfor %}
+
+                        {% if products.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ products.next_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">Next</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

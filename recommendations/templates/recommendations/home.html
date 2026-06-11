@@ -1,0 +1,260 @@
+{% extends 'recommendations/base.html' %}
+{% block title %}ShopSmart - AI-Powered Product Recommendations{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container hero-content">
+        <div class="row align-items-center">
+            <div class="col-lg-7">
+                <h1 class="hero-title">Discover Products<br>You'll Love</h1>
+                <p class="hero-subtitle">Our AI recommendation engine analyzes your behavior to find the perfect products. Powered by collaborative filtering and content-based algorithms.</p>
+                <form action="{% url 'product_list' %}" method="get" class="search-box">
+                    <input type="text" name="q" placeholder="Search for products, brands, categories..." value="{{ search_query }}">
+                    <button type="submit"><i class="bi bi-search me-2"></i>Search</button>
+                </form>
+            </div>
+            <div class="col-lg-5 d-none d-lg-block">
+                <div class="text-center">
+                    <i class="bi bi-robot" style="font-size: 8rem; color: rgba(255,255,255,0.2);"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Categories -->
+<section class="py-5">
+    <div class="container">
+        <div class="section-header">
+            <div>
+                <h2 class="section-title">Browse Categories</h2>
+                <p class="section-subtitle">Explore our wide range of product categories</p>
+            </div>
+        </div>
+        <div class="row g-4">
+            {% for category in categories %}
+            <div class="col-6 col-md-4 col-lg-2">
+                <a href="{% url 'product_list' %}?category={{ category.id }}" class="text-decoration-none">
+                    <div class="category-card">
+                        <div class="category-icon">
+                            {% if 'Electronics' in category.name %}
+                                <i class="bi bi-laptop"></i>
+                            {% elif 'Fashion' in category.name %}
+                                <i class="bi bi-bag"></i>
+                            {% elif 'Home' in category.name %}
+                                <i class="bi bi-house"></i>
+                            {% elif 'Smartphones' in category.name %}
+                                <i class="bi bi-phone"></i>
+                            {% elif 'Laptops' in category.name %}
+                                <i class="bi bi-laptop-fill"></i>
+                            {% elif 'Audio' in category.name %}
+                                <i class="bi bi-headphones"></i>
+                            {% elif 'Gaming' in category.name %}
+                                <i class="bi bi-controller"></i>
+                            {% elif 'Cameras' in category.name %}
+                                <i class="bi bi-camera"></i>
+                            {% elif 'Wearables' in category.name %}
+                                <i class="bi bi-watch"></i>
+                            {% elif 'Tablets' in category.name %}
+                                <i class="bi bi-tablet"></i>
+                            {% elif 'Footwear' in category.name %}
+                                <i class="bi bi-boot"></i>
+                            {% else %}
+                                <i class="bi bi-grid"></i>
+                            {% endif %}
+                        </div>
+                        <div class="category-name">{{ category.name }}</div>
+                        <div class="category-count">{{ category.products.count }} products</div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Personalized Recommendations -->
+{% if user.is_authenticated and personalized %}
+<section class="py-5" style="background: white;">
+    <div class="container">
+        <div class="section-header">
+            <div>
+                <h2 class="section-title">
+                    <i class="bi bi-magic me-2 text-primary"></i>Recommended For You
+                </h2>
+                <p class="section-subtitle">Personalized picks based on your browsing and purchase history</p>
+            </div>
+            <a href="{% url 'recommendations' %}" class="btn-view-all">View All <i class="bi bi-arrow-right ms-1"></i></a>
+        </div>
+        <div class="row g-4">
+            {% for rec in personalized %}
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="product-card">
+                    <div class="product-image-wrapper">
+                        <span class="product-badge recommended">
+                            <i class="bi bi-stars me-1"></i>AI Recommended
+                        </span>
+                        <span class="rec-score">
+                            {{ rec.score }}<br>
+                            <span class="rec-algorithm">{{ rec.algorithm }}</span>
+                        </span>
+                        <img src="{{ rec.product.image_url }}" alt="{{ rec.product.name }}" class="product-image">
+                    </div>
+                    <div class="product-info">
+                        <div class="product-category">{{ rec.product.category.name }}</div>
+                        <h5 class="product-name">{{ rec.product.name }}</h5>
+                        <div class="product-brand">{{ rec.product.brand }}</div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="product-price">${{ rec.product.price }}</span>
+                            <div class="product-rating">
+                                {% for i in "12345"|make_list %}
+                                    {% if forloop.counter <= rec.product.average_rating %}
+                                        <i class="bi bi-star-fill"></i>
+                                    {% else %}
+                                        <i class="bi bi-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                                <span>({{ rec.product.total_reviews }})</span>
+                            </div>
+                        </div>
+                        <button class="btn-add-cart" onclick="addToCart({{ rec.product.id }}, '{{ rec.product.name|escapejs }}')">
+                            <i class="bi bi-cart-plus me-2"></i>Add to Cart
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Trending Products -->
+<section class="py-5">
+    <div class="container">
+        <div class="section-header">
+            <div>
+                <h2 class="section-title">
+                    <i class="bi bi-fire me-2 text-danger"></i>Trending Now
+                </h2>
+                <p class="section-subtitle">Most popular products this week</p>
+            </div>
+            <a href="{% url 'product_list' %}?sort=popular" class="btn-view-all">View All <i class="bi bi-arrow-right ms-1"></i></a>
+        </div>
+        <div class="row g-4">
+            {% for rec in trending %}
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="product-card">
+                    <div class="product-image-wrapper">
+                        <span class="product-badge trending">
+                            <i class="bi bi-fire me-1"></i>Trending
+                        </span>
+                        <img src="{{ rec.product.image_url }}" alt="{{ rec.product.name }}" class="product-image">
+                    </div>
+                    <div class="product-info">
+                        <div class="product-category">{{ rec.product.category.name }}</div>
+                        <h5 class="product-name">{{ rec.product.name }}</h5>
+                        <div class="product-brand">{{ rec.product.brand }}</div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="product-price">${{ rec.product.price }}</span>
+                            <div class="product-rating">
+                                {% for i in "12345"|make_list %}
+                                    {% if forloop.counter <= rec.product.average_rating %}
+                                        <i class="bi bi-star-fill"></i>
+                                    {% else %}
+                                        <i class="bi bi-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                                <span>({{ rec.product.total_reviews }})</span>
+                            </div>
+                        </div>
+                        <button class="btn-add-cart" onclick="addToCart({{ rec.product.id }}, '{{ rec.product.name|escapejs }}')">
+                            <i class="bi bi-cart-plus me-2"></i>Add to Cart
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Featured Products -->
+<section class="py-5" style="background: white;">
+    <div class="container">
+        <div class="section-header">
+            <div>
+                <h2 class="section-title">
+                    <i class="bi bi-award me-2 text-warning"></i>Top Rated
+                </h2>
+                <p class="section-subtitle">Highest rated products by our community</p>
+            </div>
+        </div>
+        <div class="row g-4">
+            {% for product in featured %}
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="product-card">
+                    <div class="product-image-wrapper">
+                        <span class="product-badge" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);">
+                            <i class="bi bi-star-fill me-1"></i>Top Rated
+                        </span>
+                        <img src="{{ product.image_url }}" alt="{{ product.name }}" class="product-image">
+                    </div>
+                    <div class="product-info">
+                        <div class="product-category">{{ product.category.name }}</div>
+                        <h5 class="product-name">{{ product.name }}</h5>
+                        <div class="product-brand">{{ product.brand }}</div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="product-price">${{ product.price }}</span>
+                            <div class="product-rating">
+                                {% for i in "12345"|make_list %}
+                                    {% if forloop.counter <= product.average_rating %}
+                                        <i class="bi bi-star-fill"></i>
+                                    {% else %}
+                                        <i class="bi bi-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                                <span>({{ product.total_reviews }})</span>
+                            </div>
+                        </div>
+                        <button class="btn-add-cart" onclick="addToCart({{ product.id }}, '{{ product.name|escapejs }}')">
+                            <i class="bi bi-cart-plus me-2"></i>Add to Cart
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- AI Features Banner -->
+<section class="py-5">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="p-4 rounded-4" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white;">
+                    <i class="bi bi-people-fill" style="font-size: 2.5rem; opacity: 0.8;"></i>
+                    <h4 class="mt-3 fw-bold">Collaborative Filtering</h4>
+                    <p class="opacity-75">Finds products liked by users with similar tastes and preferences based on rating patterns.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-4 rounded-4" style="background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%); color: white;">
+                    <i class="bi bi-fingerprint" style="font-size: 2.5rem; opacity: 0.8;"></i>
+                    <h4 class="mt-3 fw-bold">Content-Based</h4>
+                    <p class="opacity-75">Analyzes product features, categories, and tags to match items with your interests.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-4 rounded-4" style="background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%); color: white;">
+                    <i class="bi bi-lightning-charge-fill" style="font-size: 2.5rem; opacity: 0.8;"></i>
+                    <h4 class="mt-3 fw-bold">Hybrid Engine</h4>
+                    <p class="opacity-75">Combines multiple algorithms for the most accurate and diverse recommendations.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
