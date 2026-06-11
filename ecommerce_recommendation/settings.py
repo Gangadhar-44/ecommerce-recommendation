@@ -1,10 +1,10 @@
 """
 Django settings for ecommerce_recommendation project.
 """
-
-from pathlib import Path
-import os
 import dj_database_url
+import os
+from pathlib import Path
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
