@@ -15,11 +15,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project
 COPY . .
 
-# Collect static files
-RUN python manage.py collectstatic --noinput
-
 # Expose port
 EXPOSE 8000
 
-# Run with Gunicorn
+# Run with Gunicorn (skip collectstatic in build)
 CMD ["gunicorn", "--bind", "0.0.0.0:8000", "ecommerce_recommendation.wsgi:application"]
