@@ -1,5 +1,11 @@
 # ShopSmart - AI-Powered E-Commerce Recommendation Engine
 
+🌐 **Live Website**: [https://ecommerce-recommendation-j5vu.onrender.com](https://ecommerce-recommendation-j5vu.onrender.com)
+
+## Features
+...
+# ShopSmart - AI-Powered E-Commerce Recommendation Engine
+
 [![Python](https://img.shields.io/badge/Python-3.11-blue)](https://python.org)
 [![Django](https://img.shields.io/badge/Django-5.0-green)](https://djangoproject.com)
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3-orange)](https://scikit-learn.org)
